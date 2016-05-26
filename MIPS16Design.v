@@ -89,7 +89,8 @@ module CPU( clk, rst );
 
 			Note: You may need to add more control signals to support some instructions 
 		*/
-
+        
+        // ADDI Instruction
 		if(opcode == 3'b001) begin
 			$display("Instruction = ADDI : %b" , instruction[6:0]);
 			// Add Immediate Instruction
@@ -98,6 +99,13 @@ module CPU( clk, rst );
 			cs_alu = 4'b0001;
 			cs_alu_select = 1;
 		end
+
+        // SW Instruction
+		if(opcode == 3'b101)
+		    $display("Instruction = SW : %b" , instruction[6:0]);
+		    reg_address_A = instruction[12:10];
+            reg_address_B = instruction[9:7];
+            reg_data_B = registers[reg_address_B];
 		// ID END
 
 		// Read Registers
