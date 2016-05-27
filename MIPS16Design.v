@@ -95,17 +95,41 @@ module CPU( clk, rst );
 			$display("Instruction = ADDI : %b" , instruction[6:0]);
 			// Add Immediate Instruction
 			reg_address_A = instruction[12:10];
+
+			// Set Control Signals
 			cs_write_reg = 1;
 			cs_alu = 4'b0001;
 			cs_alu_select = 1;
 		end
 
         // SW Instruction
-		if(opcode == 3'b101)
+		if(opcode == 3'b100)
 		    $display("Instruction = SW : %b" , instruction[6:0]);
 		    reg_address_A = instruction[12:10];
             reg_address_B = instruction[9:7];
             reg_data_B = registers[reg_address_B];
+
+            // Set Control Signals
+            cs_write_reg = 0;
+            cs_write_data_memory = 1;
+            cs_read_data_memory = 0;
+            cs_alu = 4'b0001;
+            cs_alu_select = 1;
+
+        //LW Instruction
+        if(opcode == 3'b101)
+		    $display("Instruction = LW : %b" , instruction[6:0]);
+		    reg_address_A = instruction[12:10];
+            reg_address_B = instruction[9:7];
+            reg_data_B = registers[reg_address_B];
+
+            // Set Control Signals
+            cs_write_reg = 1;
+            cs_write_data_memory = 0;
+            cs_read_data_memory = 1;
+            cs_alu = 4'b0001;
+            cs_alu_select = 1;
+
 		// ID END
 
 		// Read Registers
@@ -159,6 +183,13 @@ module CPU( clk, rst );
 		        $display("R%d = %d",i, registers[i]);
 			end
 		end
+
+		// Print the current contents of all data memory
+        $display("\nCurrent Data Memory Contents:");
+      	for(i = 0; i < 10; i = i + 1)
+      	   begin
+              $display("Data Mem[%d] = %d", i, data_memory[i]);
+      	    end
 
 		//For SW Instruction: Load From Memory Into Reg
 		if (cs_read_data_memory) begin
