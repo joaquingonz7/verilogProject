@@ -5,7 +5,7 @@ module CPU( clk, rst );
 
 	reg [15:0] pc;
 	reg [15:0] instruction;
-	reg	[15:0] instruction_memory [2:0];
+	reg	[15:0] instruction_memory [8:0];
 
 	// Data Memory
 	reg [15:0] data_memory [10:0]; // Array[10] of 16bits in each slot
@@ -89,21 +89,63 @@ module CPU( clk, rst );
 
 			Note: You may need to add more control signals to support some instructions 
 		*/
+
+		// ADD Instruction
+		if (opcode == 3'b000) begin
+		  $display("Instruction = ADD : %b" , instruction[6:0]);
+          reg_address_A = instruction[12:10];
+          reg_address_B = instruction[9:7];
+		  reg_address_C = instruction[2:0];
+          reg_data_B = registers[reg_address_B];
+		  reg_data_C = registers[reg_address_C];
+          cs_write_reg = 1;
+          cs_write_data_memory = 0;
+          cs_read_data_memory = 0;
+		  cs_alu = 4'b0001;
+		  cs_alu_select = 0;
+		end
         
         // ADDI Instruction
 		if(opcode == 3'b001) begin
 			$display("Instruction = ADDI : %b" , instruction[6:0]);
-			// Add Immediate Instruction
 			reg_address_A = instruction[12:10];
 
 			// Set Control Signals
 			cs_write_reg = 1;
 			cs_alu = 4'b0001;
 			cs_alu_select = 1;
+			cs_write_data_memory = 0;
+          	cs_read_data_memory = 0;
+		end
+
+		// NAND Instruction
+		if (opcode == 3'b010) begin
+		  $display("Instruction = NAND : %b" , instruction[6:0]);
+          reg_address_A = instruction[12:10];
+          reg_address_B = instruction[9:7];
+		  reg_address_C = instruction[2:0];
+          reg_data_B = registers[reg_address_B];
+		  reg_data_C = registers[reg_address_C];
+          cs_write_reg = 1;
+          cs_write_data_memory = 0;
+          cs_read_data_memory = 0;
+          cs_alu = 4'b0010;
+          cs_alu_select = 0;
+		end
+
+		// LUI Instruction
+		if (opcode == 3'b011) begin
+		  $display("Instruction = LUI : %b" , instruction[6:0]);
+          reg_address_A = instruction[12:10];
+          cs_write_reg = 1;
+          cs_write_data_memory = 0;
+          cs_read_data_memory = 0;
+          cs_alu = 4'b0011;
+          cs_alu_select = 1;
 		end
 
         // SW Instruction
-		if(opcode == 3'b100)
+		if(opcode == 3'b100) begin
 		    $display("Instruction = SW : %b" , instruction[6:0]);
 		    reg_address_A = instruction[12:10];
             reg_address_B = instruction[9:7];
@@ -115,9 +157,10 @@ module CPU( clk, rst );
             cs_read_data_memory = 0;
             cs_alu = 4'b0001;
             cs_alu_select = 1;
+         end
 
         //LW Instruction
-        if(opcode == 3'b101)
+        if(opcode == 3'b101) begin
 		    $display("Instruction = LW : %b" , instruction[6:0]);
 		    reg_address_A = instruction[12:10];
             reg_address_B = instruction[9:7];
@@ -127,12 +170,14 @@ module CPU( clk, rst );
             cs_write_reg = 1;
             cs_write_data_memory = 0;
             cs_read_data_memory = 1;
-            cs_alu = 4'b0001;
+            cs_alu = 4'b0000;
             cs_alu_select = 1;
+         end
 
 		// ID END
 
 		// Read Registers
+		reg_address_A = instruction[12:10];		
 		reg_address_B = instruction[9:7];
 		reg_address_C = instruction[2:0];
 
@@ -166,6 +211,18 @@ module CPU( clk, rst );
 					alu_zero = (alu_result == 0) ? 1 : 0;
 					$display("Added %d + %d = %d",alu_operand0, alu_operand1, alu_result);
 				end
+			4'b0010: // bitwise NAND
+			     begin
+                   alu_result = ~(alu_operand0 & alu_operand1);
+                 
+                   $display("Performed NAND ON %b and %b and got %b", alu_operand0, alu_operand1, alu_result);
+			     end
+			4'b0011: // PASS 1
+			     begin
+                   immediate = instruction[9:0];
+                   alu_result = immediate << 6;
+                   $display("Shifted %b 6 bits to the left", immediate);
+			     end
 			default:
 				begin
 					alu_zero 		= 0;
@@ -184,6 +241,18 @@ module CPU( clk, rst );
 			end
 		end
 
+		//For SW Instruction: Load From Memory Into Reg
+		if (cs_read_data_memory) begin
+		    data_address = alu_result;
+			data_memory[data_address] = registers[reg_address_A]; 
+		end
+
+		//For LW Instruction:  Store From Reg Into Memory 
+		if(cs_write_data_memory) begin
+		     data_address = alu_result;
+			registers[reg_address_A] = data_memory[data_address];
+		end
+
 		// Print the current contents of all data memory
         $display("\nCurrent Data Memory Contents:");
       	for(i = 0; i < 10; i = i + 1)
@@ -191,22 +260,11 @@ module CPU( clk, rst );
               $display("Data Mem[%d] = %d", i, data_memory[i]);
       	    end
 
-		//For SW Instruction: Load From Memory Into Reg
-		if (cs_read_data_memory) begin
-			data_memory[data_address] = registers[reg_address_A]; 
-		end
-
-		//For LW Instruction:  Store From Reg Into Memory 
-		if(cs_write_data_memory) begin
-			registers[reg_address_A] = data_memory[data_address];
-		end
-
 		// Increment PC According to pc_control
 		case (pc_control)
 			3'b000 : pc = pc + 1;
 			default: pc = pc + 1;
 		endcase
 	end
-
 endmodule
 
