@@ -230,33 +230,35 @@ module CPU( clk, rst );
 				end				
 		endcase
 		// ALU END
-				
+
 		// Write Back To Reg
 		if (cs_write_reg == 1) begin
 			registers[reg_address_A] = alu_result;
 			$display("Write R%d = %d",reg_address_A, alu_result);
-			$display("\nPrint Registers:");
-			for(i = 0; i < 8; i = i+1) begin
-		        $display("R%d = %d",i, registers[i]);
-			end
 		end
 
-		//For SW Instruction: Load From Memory Into Reg
-		if (cs_read_data_memory) begin
-		    data_address = alu_result;
-			data_memory[data_address] = registers[reg_address_A]; 
-		end
+		//For SW Instruction: Store from Reg to Memory
+        if (cs_write_data_memory) begin
+            data_address = alu_result;
+            data_memory[data_address] = registers[reg_address_A]; 
+        end
 
-		//For LW Instruction:  Store From Reg Into Memory 
-		if(cs_write_data_memory) begin
-		     data_address = alu_result;
-			registers[reg_address_A] = data_memory[data_address];
+        //For LW Instruction:  Load From Memory to Reg 
+        if(cs_read_data_memory) begin;
+            data_address = alu_result;
+            registers[reg_address_A] = data_memory[data_address];
+        end
+
+		// Print the current contents of all registers
+		$display("\nPrint Registers:");
+		for(i = 0; i < 8; i = i+1) begin
+		    $display("R%d = %d",i, registers[i]);
 		end
 
 		// Print the current contents of all data memory
         $display("\nCurrent Data Memory Contents:");
       	for(i = 0; i < 10; i = i + 1)
-      	   begin
+      	    begin
               $display("Data Mem[%d] = %d", i, data_memory[i]);
       	    end
 
